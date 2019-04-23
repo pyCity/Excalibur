@@ -4,18 +4,16 @@ setup(
     name='src',
     version='0.1dev',
     packages=find_packages(),
-    url='https://github.com/pyCity/src',
-    license=open("LICENSE", "r").read(),
+    url='https://github.com/pyCity/Excalibur',
     author='pyCity',
-    author_email='',
+    license=open("LICENSE", "r").read(),
     description=open("README.md", "r").read(),
+    install_requires=open("requirements.txt", "r").read(),
     py_modules=[
         'src/classes',
         'src/functions',
-        'src/variables'
-    ],
-    install_requires=[
-        "pycryptodome >= 3.8.1",
-        "tqdm >= 4.31.1"
+        'src/variables',
+        'src/main',
+        "src/__init__.py"
     ],
 )

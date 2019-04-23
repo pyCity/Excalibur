@@ -1,9 +1,10 @@
 from Crypto import Random
 from Crypto.Hash import SHA256
 from Crypto.Cipher import AES
-from tqdm import tqdm  # Progress bar
 
+from tqdm import tqdm  # Progress bar
 from threading import Thread
+from concurrent.futures import ThreadPoolExecutor
 from src.functions import secure_delete
 
 
@@ -61,7 +62,8 @@ class AesExcalibur:
             encrypted = self.encrypt(plain_text)
             with open(file_name + ".AeS", 'wb+') as f:
                 f.write(encrypted)
-            secure_delete(file_name)  # Delete original
+            AsyncDelete(file_name)  # Remove the original file in a separate thread in background
+            # secure_delete(file_name)  # Delete original
         except (IOError, ValueError, FileNotFoundError, Exception):
             pass  # Suppress output for progress bars
 
@@ -72,7 +74,8 @@ class AesExcalibur:
             decrypted = self.decrypt(cipher_text)
             with open(file_name[:-4], 'wb+') as f:
                 f.write(decrypted)
-            secure_delete(file_name)
+            AsyncDelete(file_name)
+            # secure_delete(file_name)
         except (IOError, ValueError, FileNotFoundError) as err:
             print(Colors.red + "An error occured: {}".format(err))
 
@@ -82,17 +85,32 @@ class AsyncEncrypt(Thread):
 
     def __init__(self, encryption_object, file_list):
         """
-        :type file_list: Array of files returned from recursive walk
+        :type file_list:         Array of files returned from recursive walk
         :type encryption_object: Object created from AesExcalibur class
         """
         Thread.__init__(self)
         self.crypt = encryption_object
         self.files = file_list
-        self.daemon = True
+        # self.daemon = True
 
     def run(self):
         for file in tqdm(self.files, ascii=True, smoothing=0.8, desc="Encryption status: {}".format(self.name)):
             self.crypt.encrypt_file(file)
+
+
+class AsyncDelete(Thread):
+    """Start a new thread that calls secure_delete on a file"""
+
+    def __init__(self, file):
+        Thread.__init__(self)
+        self.file = file
+        # self.daemon = True
+
+    def run(self):
+        tp.submit(secure_delete(filename=self.file))
+
+
+tp = ThreadPoolExecutor(max_workers=10)  # Max 10 threads for delete
 
 
 class Colors:
@@ -101,3 +119,4 @@ class Colors:
     blue = "\033[94m"
     red = "\033[91m"
     green = "\033[92m"
+    purple = "\033[95m"

