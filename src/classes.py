@@ -82,7 +82,7 @@ class AsyncEncrypt(Thread):
 
     def __init__(self, encryption_object, file_list):
         """
-        :type file_list: Array of files found through recursive walk
+        :type file_list: Array of files returned from recursive walk
         :type encryption_object: Object created from AesExcalibur class
         """
         Thread.__init__(self)
