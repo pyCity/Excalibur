@@ -7,16 +7,29 @@ from threading import Thread
 from src.functions import secure_delete
 
 
-class Colors:
-    bold = "\033[1m"
-    underline = "\033[4m"
-    blue = "\033[94m"
-    red = "\033[91m"
-    green = "\033[92m"
-
-
 class AesExcalibur:
-    """Class used to encrypt and decrypt data"""
+    """
+#****************************************************************************************************#
+#-------------------------------------------AesExcalibur Data----------------------------------------#
+#                                                                                                    #
+# Class Goal: Create an object capable of encrypting or decrypting files                             #
+#                                                                                                    #
+#       Methods:                                                                                     #
+#                                                                                                    #
+#   pad            - Static method used to pad the supplied key with the AES block size.             #
+#                                                                                                    #
+#   encrypt        - Encrypt takes stream of plaintext message and returns the encrypted message     #
+#                                                                                                    #
+#   decrypt        - Decrypt an encrypted stream of ciphertext and returns the plaintext             #
+#                                                                                                    #
+#   encrypt_file   - This function tries to read a file in binary mode, then calls encrypt() on      #
+#                    the binary stream. Next it rewrites the original filename as .aes and removes   #
+#                    the original file. If an error occurs, skip to the next file.                   #
+#                                                                                                    #
+#   decrypt_file   - Reversal of encrypt_file                                                        #
+#                                                                                                    #
+#****************************************************************************************************#
+ """
 
     def __init__(self, password):
         self.key = SHA256.new(password).digest()
@@ -68,6 +81,10 @@ class AsyncEncrypt(Thread):
     """Start a thread that encrypts an array of files"""
 
     def __init__(self, encryption_object, file_list):
+        """
+        :type file_list: Array of files found through recursive walk
+        :type encryption_object: Object created from AesExcalibur class
+        """
         Thread.__init__(self)
         self.crypt = encryption_object
         self.files = file_list
@@ -76,3 +93,11 @@ class AsyncEncrypt(Thread):
     def run(self):
         for file in tqdm(self.files, ascii=True, smoothing=0.8, desc="Encryption status: {}".format(self.name)):
             self.crypt.encrypt_file(file)
+
+
+class Colors:
+    bold = "\033[1m"
+    underline = "\033[4m"
+    blue = "\033[94m"
+    red = "\033[91m"
+    green = "\033[92m"
