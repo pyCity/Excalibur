@@ -4,8 +4,17 @@ from Crypto.Cipher import AES
 
 from tqdm import tqdm  # Progress bar
 from threading import Thread
-from concurrent.futures import ThreadPoolExecutor
+# from concurrent.futures import ThreadPoolExecutor
 from src.functions import secure_delete
+
+
+class Colors:
+    bold = "\033[1m"
+    underline = "\033[4m"
+    blue = "\033[94m"
+    red = "\033[91m"
+    green = "\033[92m"
+    purple = "\033[95m"
 
 
 class AesExcalibur:
@@ -13,7 +22,7 @@ class AesExcalibur:
 #****************************************************************************************************#
 #-------------------------------------------AesExcalibur Data----------------------------------------#
 #                                                                                                    #
-# Class Goal: Create an object capable of encrypting or decrypting files                             #
+# Class Goal: Create an object with methods to encrypt or decrypt files                              #
 #                                                                                                    #
 #       Methods:                                                                                     #
 #                                                                                                    #
@@ -64,7 +73,7 @@ class AesExcalibur:
             encrypted = self.encrypt(plain_text)
             with open(file_name + ".AeS", 'wb+') as f:
                 f.write(encrypted)
-            AsyncDelete(file_name)  # Remove the original in a separate thread pool
+            secure_delete(file_name)  # Remove the original in a separate thread pool
         except (IOError, ValueError, FileNotFoundError, Exception):
             pass  # Suppress output for progress bars
 
@@ -77,12 +86,12 @@ class AesExcalibur:
             decrypted = self.decrypt(cipher_text)
             with open(file_name[:-4], 'wb+') as f:
                 f.write(decrypted)
-            AsyncDelete(file_name)
+            secure_delete(file_name)
         except (IOError, ValueError, FileNotFoundError) as err:
             print(Colors.red + "An error occured: {}".format(err))
 
 
-class AsyncEncrypt(Thread):
+class ThreadedEncrypt(Thread):
     """Start a thread that encrypts an array of files"""
 
     def __init__(self, encryption_object, file_list):
@@ -101,28 +110,20 @@ class AsyncEncrypt(Thread):
             self.crypt.encrypt_file(file)
 
 
-class AsyncDelete(Thread):
-    """Start a new thread that calls secure_delete on a file"""
-
-    def __init__(self, file):
-        """
-        :type file: Absolute path of a file to remove in a thread
-        """
-        Thread.__init__(self)
-        self.file = file
-        # self.daemon = True
-
-    def run(self):
-        tp.submit(secure_delete, self.file)
-
-
-tp = ThreadPoolExecutor(max_workers=10)  # Max 10 threads for delete
-
-
-class Colors:
-    bold = "\033[1m"
-    underline = "\033[4m"
-    blue = "\033[94m"
-    red = "\033[91m"
-    green = "\033[92m"
-    purple = "\033[95m"
+# For some reason this isn't deleting every file that is passed through
+# class AsyncDelete(Thread):
+#     """Start a new thread that calls secure_delete on a file. Called after encrypt_file or decrypt_file"""
+#
+#     def __init__(self, file):
+#         """
+#         :type file: Absolute path of a file to remove in a thread
+#         """
+#         Thread.__init__(self)
+#         self.file = file
+#         # self.daemon = True
+#
+#     def run(self):
+#         tp.submit(secure_delete(self.file))
+#
+#
+# tp = ThreadPoolExecutor(max_workers=10)  # Max 10 threads for deleting
