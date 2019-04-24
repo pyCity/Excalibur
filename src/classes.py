@@ -56,18 +56,21 @@ class AesExcalibur:
         return plaintext.rstrip(b"\0")
 
     def encrypt_file(self, file_name):
+        """Read file, encrypt the text, write the encrypted text to a new file, remove the original"""
+
         try:
             with open(file_name, 'rb') as f:
                 plain_text = f.read()
             encrypted = self.encrypt(plain_text)
             with open(file_name + ".AeS", 'wb+') as f:
                 f.write(encrypted)
-            AsyncDelete(file_name)  # Remove the original file in a separate thread in background
-            # secure_delete(file_name)  # Delete original
+            AsyncDelete(file_name)  # Remove the original in a separate thread pool
         except (IOError, ValueError, FileNotFoundError, Exception):
             pass  # Suppress output for progress bars
 
     def decrypt_file(self, file_name):
+        """Read file in, decrypt the text, write the decrypted text to a new file, remove the original"""
+
         try:
             with open(file_name, 'rb') as f:
                 cipher_text = f.read()
@@ -75,7 +78,6 @@ class AesExcalibur:
             with open(file_name[:-4], 'wb+') as f:
                 f.write(decrypted)
             AsyncDelete(file_name)
-            # secure_delete(file_name)
         except (IOError, ValueError, FileNotFoundError) as err:
             print(Colors.red + "An error occured: {}".format(err))
 
@@ -94,7 +96,8 @@ class AsyncEncrypt(Thread):
         # self.daemon = True
 
     def run(self):
-        for file in tqdm(self.files, ascii=True, smoothing=0.8, desc="Encryption status: {}".format(self.name)):
+        for file in tqdm(self.files, ascii=True, smoothing=0.8,
+                         desc="Encryption status: {}".format(self.name)):
             self.crypt.encrypt_file(file)
 
 
@@ -102,12 +105,15 @@ class AsyncDelete(Thread):
     """Start a new thread that calls secure_delete on a file"""
 
     def __init__(self, file):
+        """
+        :type file: Absolute path of a file to remove in a thread
+        """
         Thread.__init__(self)
         self.file = file
         # self.daemon = True
 
     def run(self):
-        tp.submit(secure_delete(filename=self.file))
+        tp.submit(secure_delete, self.file)
 
 
 tp = ThreadPoolExecutor(max_workers=10)  # Max 10 threads for delete
