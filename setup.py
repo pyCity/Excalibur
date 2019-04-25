@@ -9,11 +9,4 @@ setup(
     license=open("LICENSE", "r").read(),
     description=open("README.md", "r").read(),
     install_requires=open("requirements.txt", "r").read(),
-    py_modules=[
-        'src/classes',
-        'src/functions',
-        'src/variables',
-        'src/main',
-        "src/__init__.py"
-    ],
 )

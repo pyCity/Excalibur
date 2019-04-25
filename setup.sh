@@ -18,7 +18,7 @@ while ! [ -e "requirements.txt" ] && [ -x "$(command -v pip3)" && "$(command -v 
     # Check for requirements.txt
     if ! [ -e "requirements.txt" ]; then
         echo "File not found. Creating requirements.txt"
-        echo -e "pycryptodome==3.7.3\ntqdm==4.31.1\n" > requirements.txt
+        echo -e "pycryptodome==3.7.3\n" > requirements.txt
     fi
 
 done
