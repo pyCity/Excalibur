@@ -12,7 +12,7 @@ Setup:
          
 Usage:
    
-         python3 main.py         
+         python3 Excalibur.py         
 
 
 This program functions well as is, but is best to compile using pyinstaller before delivery
