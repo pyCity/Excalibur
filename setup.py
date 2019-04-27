@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='src',
-    version='0.1dev',
+    name='Excalibur',
+    version='0.1.dev',
     packages=find_packages(),
     url='https://github.com/pyCity/Excalibur',
     author='pyCity',

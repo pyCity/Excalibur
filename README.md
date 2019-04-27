@@ -23,3 +23,4 @@ If you pyinstaller raises an ImportError, double check that you
 have installed requirements.txt and try:
 
 pip3 install --upgrade pyinstaller
+
