@@ -12,14 +12,14 @@ Setup:
          
 Usage:
    
-         python3 Excalibur.py         
+         python3 Excalibur.py -h         
 
 
 This program functions well as is, but is best to compile using pyinstaller before delivery
 
         pyinstaller --onefile Excalibur.py
        
-If you come across an ImportError from pyinstaller, double check that you 
+If you pyinstaller raises an ImportError, double check that you 
 have installed requirements.txt and try:
 
 pip3 install --upgrade pyinstaller

