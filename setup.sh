@@ -6,7 +6,7 @@ if [ $(id -u) -ne 0 ]; then
     sudo $0 && exit 1
 fi
 
-# Loop until requirements.txt and pip3 exist
+# Loop until requirements.txt, pip3, and python3 exist
 while ! [ -e "requirements.txt" ] && [ -x "$(command -v pip3)" && "$(command -v python3)" ]; do
 
     # Check for python3 and pip3
@@ -14,13 +14,12 @@ while ! [ -e "requirements.txt" ] && [ -x "$(command -v pip3)" && "$(command -v 
         echo "Either ip3 or python3 not detected. installing pip3"
         apt-get update -y && apt-get -y install python3 python3-pip
     fi
-
     # Check for requirements.txt
+
     if ! [ -e "requirements.txt" ]; then
         echo "File not found. Creating requirements.txt"
         echo -e "pycryptodome==3.7.3\n" > requirements.txt
     fi
-
 done
 
 echo "Found requirements.txt & pip3. Installing dependencies"
