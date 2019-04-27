@@ -155,14 +155,14 @@ class AesExcalibur:
     def encrypt(self, plain_text):
         """Encrypt a stream of text"""
         padded_text = self.pad(plain_text)
-        IV = Random.new().read(AES.block_size)
-        cipher = AES.new(self.key, AES.MODE_CBC, IV)
-        return IV + cipher.encrypt(padded_text)
+        iv = Random.new().read(AES.block_size)
+        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        return iv + cipher.encrypt(padded_text)
 
     def decrypt(self, cipher_text):
         """Decrypt a stream of text"""
-        IV = cipher_text[:AES.block_size]
-        cipher = AES.new(self.key, AES.MODE_CBC, IV)
+        iv = cipher_text[:AES.block_size]
+        cipher = AES.new(self.key, AES.MODE_CBC, iv)
         plaintext = cipher.decrypt(cipher_text[AES.block_size:])
         return plaintext.rstrip(b"\0")
 
@@ -190,7 +190,7 @@ class AesExcalibur:
             secure_delete(file_name)
             self.total += 1
         except (IOError, ValueError, FileNotFoundError) as err:
-            print(Colors.red + "An error occured: {}".format(err))
+            print(Colors.red + "An error occurred: {}".format(err))
 
 
 # --------------------------------------------------------------------------
